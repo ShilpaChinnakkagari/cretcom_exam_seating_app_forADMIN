@@ -1,4 +1,4 @@
-** cretcom_exam_seating_forADMIN **
+cretcom_exam_seating_forADMIN
 -------------------------------------------------------
 _Problem:_
 Exam seating details are usually managed manually by staff, which involves repeatedly updating notice boards and sharing information verbally. This process is time-consuming, error-prone, and difficult to manage when student data or room allocations change frequently.
