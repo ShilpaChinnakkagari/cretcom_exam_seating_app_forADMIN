@@ -1,17 +1,31 @@
-# fresh_admin_app
+**cretcom_exam_seating_forADMIN **
+-------------------------------------------------------
+_Problem:_
+Exam seating details are usually managed manually by staff, which involves repeatedly updating notice boards and sharing information verbally. This process is time-consuming, error-prone, and difficult to manage when student data or room allocations change frequently.
+_
+Solution:_
+This admin-side Flutter application provides a centralized way for administrators to manage exam seating data using a Google Spreadsheet. The admin can control the Google Sheet link and API key used by the student-facing exam seating app, ensuring real-time and accurate updates.
 
-A new Flutter project.
+**What it does:**
+---------------------
+1.Allows the admin to manage the Google Spreadsheet used for exam seating allocation.
+2.Stores and updates the Google Sheets API key securely for data access.
+3.Acts as the backend control app for the cretcom_exam_seating_app.
+4.Ensures any update made by the admin is instantly reflected for students.
+5. Reduces manual effort and avoids confusion during exams.
 
-## Getting Started
+**Usage Flow**
+-----------------------
+1.Admin updates student exam seating details in Google Sheets.
+2.Admin configures the spreadsheet link and API key using this app.
+3.Student app fetches updated data directly from the configured sheet.
+4.Students can check their exam room and bench details without crowding notice boards.
 
-This project is a starting point for a Flutter application.
+From ADMIN side - APP
+---------------------
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/f721b0e4-0ad6-401d-acc7-687593fd85d2" />
 
-A few resources to get you started if this is your first Flutter project:
+Google Sheet - that admin manages
+---------------------------------
+<img width="1172" height="394" alt="Screenshot 2026-02-15 151807" src="https://github.com/user-attachments/assets/dbfea2ce-df6f-4dac-98e0-9cd6f987b868" />
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
