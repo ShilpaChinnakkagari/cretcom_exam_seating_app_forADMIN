@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "518453727244",
+    "project_id": "cretcom-exam-system",
+    "storage_bucket": "cretcom-exam-system.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:518453727244:android:ad6841627e1d22102cde29",
+        "android_client_info": {
+          "package_name": "com.cretcom.admin_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyByMSd0J5WODxsfJ5VpdQF0Jxhl2MjbNSs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:518453727244:android:7c352f33a14055c92cde29",
+        "android_client_info": {
+          "package_name": "com.cretcom.fresh_admin_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyByMSd0J5WODxsfJ5VpdQF0Jxhl2MjbNSs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
