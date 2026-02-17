@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../main.dart';
 import '../services/firebase_service.dart';
 import '../services/test_service.dart';
+import '../services/firebase_sync_service.dart';
 import '../models/config_model.dart';
 
 class AdminHomeScreen extends StatefulWidget {
@@ -22,12 +23,17 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   
   bool _isLoading = true;
   bool _isTesting = false;
+  bool _isSyncing = false;
+  double _syncProgress = 0.0;
+  String _syncStatus = '';
   ConfigModel? _currentConfig;
+  Map<String, dynamic> _syncStatusData = {};
 
   @override
   void initState() {
     super.initState();
     _loadConfig();
+    _loadSyncStatus();
   }
 
   Future<void> _loadConfig() async {
@@ -43,6 +49,14 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     }
     
     setState(() => _isLoading = false);
+  }
+
+  Future<void> _loadSyncStatus() async {
+    final syncService = FirebaseSyncService();
+    final status = await syncService.getSyncStatus();
+    setState(() {
+      _syncStatusData = status;
+    });
   }
 
   Future<void> _testConnection() async {
@@ -64,6 +78,42 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     }
     
     setState(() => _isTesting = false);
+  }
+
+  Future<void> _syncToFirebase() async {
+    if (!_formKey.currentState!.validate()) return;
+    
+    setState(() {
+      _isSyncing = true;
+      _syncProgress = 0.0;
+      _syncStatus = 'Starting sync...';
+    });
+
+    final syncService = FirebaseSyncService(
+      onProgress: (progress) {
+        setState(() => _syncProgress = progress);
+      },
+      onStatus: (status) {
+        setState(() => _syncStatus = status);
+      },
+    );
+
+    final result = await syncService.syncSheetToFirebase(
+      spreadsheetId: _sheetController.text.trim(),
+      apiKey: _apiController.text.trim(),
+      sheetName: 'Sheet1', // or make this configurable
+    );
+
+    setState(() => _isSyncing = false);
+
+    if (result['success']) {
+      Provider.of<AdminState>(context, listen: false)
+          .setSuccess(result['message']);
+      await _loadSyncStatus();
+    } else {
+      Provider.of<AdminState>(context, listen: false)
+          .setError(result['message']);
+    }
   }
 
   void _showSuccessDialog(Map<String, dynamic> result) {
@@ -111,11 +161,28 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     state.setLoading(false);
   }
 
+  String _formatTimestamp(dynamic timestamp) {
+    if (timestamp == null) return 'Never';
+    try {
+      final date = DateTime.fromMillisecondsSinceEpoch(timestamp as int);
+      return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute}';
+    } catch (e) {
+      return 'Unknown';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('CretCom Admin'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadSyncStatus,
+            tooltip: 'Refresh status',
+          ),
+        ],
       ),
       body: Consumer<AdminState>(
         builder: (context, state, child) {
@@ -135,25 +202,64 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                 ),
                 const SizedBox(height: 20),
                 
-                if (_currentConfig != null) ...[
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                // Sync Status Card
+                Card(
+                  color: Colors.blue.shade50,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
                     child: Column(
                       children: [
-                        const Text('Current Configuration:',
-                            style: TextStyle(fontWeight: FontWeight.bold)),
-                        Text('Sheet: ${_currentConfig!.spreadsheetId}'),
-                        Text('Last: ${_currentConfig!.lastUpdated}'),
+                        Row(
+                          children: [
+                            Icon(Icons.cloud_sync, color: Colors.blue.shade700),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Firebase Sync Status',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        const Divider(),
+                        _buildInfoRow('Last Sync', _formatTimestamp(_syncStatusData['lastSync'])),
+                        _buildInfoRow('Records', '${_syncStatusData['recordCount'] ?? 0} students'),
+                        if (_syncStatusData.containsKey('spreadsheetId'))
+                          _buildInfoRow('Source', 'Google Sheet: ${_syncStatusData['spreadsheetId']}'),
                       ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                
+                // Current Config Card
+                if (_currentConfig != null) ...[
+                  Card(
+                    color: Colors.green.shade50,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.settings, color: Colors.green.shade700),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Current Configuration',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                          const Divider(),
+                          _buildInfoRow('Sheet ID', _currentConfig!.spreadsheetId, maxLength: 30),
+                          _buildInfoRow('API Key', '${_currentConfig!.apiKey.substring(0, 15)}...'),
+                          _buildInfoRow('Last Updated', _currentConfig!.lastUpdated.toString()),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 20),
                 ],
                 
+                // Main Form Card
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
@@ -182,6 +288,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                           ),
                           const SizedBox(height: 20),
                           
+                          // Action Buttons Row
                           Row(
                             children: [
                               Expanded(
@@ -203,19 +310,12 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                                   ),
                                 ),
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          
-                          Row(
-                            children: [
+                              const SizedBox(width: 8),
                               Expanded(
                                 child: ElevatedButton.icon(
-                                  onPressed: (state.isLoading || _isTesting)
-                                      ? null
-                                      : _saveConfig,
+                                  onPressed: (state.isLoading || _isTesting) ? null : _saveConfig,
                                   icon: const Icon(Icons.save),
-                                  label: Text(state.isLoading ? 'Saving...' : 'Update'),
+                                  label: Text(state.isLoading ? 'Saving...' : 'Save Config'),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.blue,
                                   ),
@@ -223,12 +323,43 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                               ),
                             ],
                           ),
+                          
+                          const SizedBox(height: 16),
+                          
+                          // Sync Button (NEW)
+                          ElevatedButton.icon(
+                            onPressed: (_isSyncing || _isTesting) ? null : _syncToFirebase,
+                            icon: _isSyncing
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Icon(Icons.sync),
+                            label: Text(_isSyncing ? 'Syncing...' : 'Sync to Firebase'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.purple,
+                              minimumSize: const Size(double.infinity, 50),
+                            ),
+                          ),
+                          
+                          // Sync Progress Bar
+                          if (_isSyncing) ...[
+                            const SizedBox(height: 16),
+                            LinearProgressIndicator(value: _syncProgress),
+                            const SizedBox(height: 8),
+                            Text(_syncStatus),
+                          ],
                         ],
                       ),
                     ),
                   ),
                 ),
                 
+                // Status Messages
                 if (state.error != null)
                   Container(
                     margin: const EdgeInsets.only(top: 20),
@@ -248,6 +379,29 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value, {int maxLength = 20}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              '$label:',
+              style: const TextStyle(fontWeight: FontWeight.w500),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value.length > maxLength ? '${value.substring(0, maxLength)}...' : value,
+              style: const TextStyle(fontWeight: FontWeight.normal),
+            ),
+          ),
+        ],
       ),
     );
   }
